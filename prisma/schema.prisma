@@ -1,0 +1,217 @@
+// Prisma schema for the Mouldec / Taxidermie de l'Estrie WooCommerce migration.
+// Each model preserves the WordPress source ID (wpPostId / wpTermId) for traceability.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------- Enums ----------
+
+enum ProductType {
+  SIMPLE
+  VARIABLE
+  GROUPED
+  EXTERNAL
+}
+
+enum ProductStatus {
+  PUBLISHED
+  DRAFT
+  PRIVATE
+  PENDING
+  TRASH
+}
+
+// ---------- Taxonomies ----------
+
+model Category {
+  id          Int        @id @default(autoincrement())
+  wpTermId    Int        @unique
+  slug        String     @unique
+  name        String
+  description String?
+  parentId    Int?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryTree")
+  imageUrl    String?
+  position    Int        @default(0)
+  productCount Int       @default(0)
+  products    Product[]  @relation("ProductCategories")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([parentId])
+}
+
+model Tag {
+  id          Int       @id @default(autoincrement())
+  wpTermId    Int       @unique
+  slug        String    @unique
+  name        String
+  productCount Int      @default(0)
+  products    Product[] @relation("ProductTags")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ---------- Products ----------
+
+model Product {
+  id               Int            @id @default(autoincrement())
+  wpPostId         Int            @unique
+  slug             String         @unique
+  name             String
+  description      String?
+  shortDescription String?
+  type             ProductType    @default(SIMPLE)
+  status           ProductStatus  @default(PUBLISHED)
+  featured         Boolean        @default(false)
+  catalogVisibility String        @default("visible")
+
+  sku              String?
+
+  // Pricing — for variable products these may be null; the variants drive the range.
+  price            Decimal?       @db.Decimal(10, 2)
+  regularPrice     Decimal?       @db.Decimal(10, 2)
+  salePrice        Decimal?       @db.Decimal(10, 2)
+  saleStart        DateTime?
+  saleEnd          DateTime?
+
+  // Stock
+  manageStock      Boolean        @default(false)
+  stockQuantity    Int?
+  stockStatus      String         @default("instock")
+  backorders       String         @default("no")
+  soldIndividually Boolean        @default(false)
+
+  // Dimensions
+  weight           Decimal?       @db.Decimal(10, 3)
+  length           Decimal?       @db.Decimal(10, 2)
+  width            Decimal?       @db.Decimal(10, 2)
+  height           Decimal?       @db.Decimal(10, 2)
+
+  // Tax / shipping
+  taxStatus        String         @default("taxable")
+  taxClass         String?
+  shippingClass    String?
+
+  // Purchase note
+  purchaseNote     String?
+
+  // SEO (Yoast)
+  metaTitle        String?
+  metaDescription  String?
+
+  // Images — URLs absolues vers le WP live; rempli par le download script plus tard.
+  primaryImageUrl  String?
+  galleryImageUrls String[]
+
+  // Relations
+  categories       Category[]         @relation("ProductCategories")
+  tags             Tag[]              @relation("ProductTags")
+  attributes       ProductAttribute[]
+  variants         Variant[]
+
+  // Metadata
+  totalSales       Int                @default(0)
+  averageRating    Decimal?           @db.Decimal(3, 2)
+  ratingCount      Int                @default(0)
+
+  // Audit
+  wpCreatedAt      DateTime?
+  wpModifiedAt     DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([featured])
+}
+
+model ProductAttribute {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name        String   // ex: "Dimension (mm)"
+  slug        String   // ex: "dimension-mm" — clé interne WooCommerce
+  position    Int      @default(0)
+  isVisible   Boolean  @default(true)
+  isVariation Boolean  @default(false)
+  options     String[] // ex: ["14mm","16mm","18mm","20mm","22mm"]
+
+  @@unique([productId, slug])
+  @@index([productId])
+}
+
+model Variant {
+  id            Int      @id @default(autoincrement())
+  wpPostId      Int      @unique
+  productId     Int
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  sku           String?
+  price         Decimal? @db.Decimal(10, 2)
+  regularPrice  Decimal? @db.Decimal(10, 2)
+  salePrice     Decimal? @db.Decimal(10, 2)
+
+  manageStock   Boolean  @default(false)
+  stockQuantity Int?
+  stockStatus   String   @default("instock")
+
+  weight        Decimal? @db.Decimal(10, 3)
+  length        Decimal? @db.Decimal(10, 2)
+  width         Decimal? @db.Decimal(10, 2)
+  height        Decimal? @db.Decimal(10, 2)
+
+  imageUrl      String?
+
+  // Mapping attribut slug → option choisie pour cette variante
+  // Ex: { "dimension-mm": "16mm", "couleur": "rouge" }
+  attributes    Json     @default("{}")
+
+  position      Int      @default(0)
+  enabled       Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([productId])
+}
+
+// ---------- Media ----------
+
+model MediaAsset {
+  id            Int      @id @default(autoincrement())
+  wpPostId      Int      @unique
+  originalUrl   String   // URL absolue sur WordPress live
+  filePath      String   // ex: "2019/09/fullsizeoutput_94e.jpeg"
+  localPath     String?  // rempli par 03-download-media.ts
+  altText       String?
+  title         String?
+  mimeType      String?
+  width         Int?
+  height        Int?
+  fileSize      Int?
+  downloadedAt  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ---------- Migration log (utile pour debug + idempotence) ----------
+
+model MigrationRun {
+  id          Int      @id @default(autoincrement())
+  step        String   // "transform" | "seed" | "media"
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+  itemsTotal  Int      @default(0)
+  itemsOk     Int      @default(0)
+  itemsFailed Int      @default(0)
+  notes       String?
+}

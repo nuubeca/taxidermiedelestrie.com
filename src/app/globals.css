@@ -1,0 +1,181 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Naturaliste contemporain — light (parchemin / cabinet) */
+    --bg: 244 239 228;
+    --bg-alt: 237 230 211;
+    --surface: 250 247 239;
+    --ink: 26 24 20;
+    --ink-muted: 87 84 74;
+    --ink-subtle: 139 134 120;
+    --rule: 216 207 185;
+    --rule-strong: 26 24 20;
+    --ochre: 158 32 36;
+    --moss: 45 63 42;
+    --terracotta: 180 93 45;
+  }
+
+  .dark {
+    /* Naturaliste contemporain — dark (nuit forêt / cuir) */
+    --bg: 19 18 16;
+    --bg-alt: 28 27 23;
+    --surface: 31 30 26;
+    --ink: 240 234 216;
+    --ink-muted: 181 174 157;
+    --ink-subtle: 122 117 103;
+    --rule: 45 43 37;
+    --rule-strong: 240 234 216;
+    --ochre: 200 69 72;
+    --moss: 107 142 92;
+    --terracotta: 224 133 80;
+  }
+
+  * {
+    border-color: rgb(var(--rule));
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: rgb(var(--bg));
+    color: rgb(var(--ink));
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  /* Editorial selection */
+  ::selection {
+    background-color: rgb(var(--ink));
+    color: rgb(var(--bg));
+  }
+
+  /* Scrollbar — subtle, light/dark aware */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgb(var(--bg));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--rule));
+    border: 2px solid rgb(var(--bg));
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--ink-subtle));
+  }
+}
+
+@layer components {
+  /* Museum caption — small uppercase mono with extreme tracking */
+  .caption-museum {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    line-height: 1.4;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--ink-subtle));
+  }
+
+  /* Editorial rule — thin hairline */
+  .rule-hairline {
+    border-top: 1px solid rgb(var(--rule));
+  }
+
+  /* Editorial prose — for HTML migrated from WordPress descriptions */
+  .prose-naturalist {
+    color: rgb(var(--ink));
+  }
+  .prose-naturalist > * + * {
+    margin-top: 1.25rem;
+  }
+  .prose-naturalist p {
+    line-height: 1.7;
+  }
+  .prose-naturalist h2,
+  .prose-naturalist h3,
+  .prose-naturalist h4 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    color: rgb(var(--ink));
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.2;
+  }
+  .prose-naturalist h2 { font-size: 1.875rem; }
+  .prose-naturalist h3 { font-size: 1.5rem; }
+  .prose-naturalist h4 { font-size: 1.25rem; }
+  .prose-naturalist a {
+    color: rgb(var(--ink));
+    text-decoration: underline;
+    text-decoration-color: rgb(var(--ochre));
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
+    transition: text-decoration-color 0.3s;
+  }
+  .prose-naturalist a:hover {
+    text-decoration-color: rgb(var(--ink));
+  }
+  .prose-naturalist ul,
+  .prose-naturalist ol {
+    padding-left: 1.5rem;
+  }
+  .prose-naturalist ul { list-style: square; }
+  .prose-naturalist ol { list-style: decimal; }
+  .prose-naturalist li { margin-top: 0.5rem; }
+  .prose-naturalist strong { font-weight: 600; }
+  .prose-naturalist em { font-style: italic; }
+  .prose-naturalist blockquote {
+    border-left: 2px solid rgb(var(--ochre));
+    padding-left: 1.5rem;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 1.25rem;
+    color: rgb(var(--ink-muted));
+    margin: 2rem 0;
+  }
+  .prose-naturalist hr {
+    border: 0;
+    border-top: 1px solid rgb(var(--rule));
+    margin: 2.5rem 0;
+  }
+  .prose-naturalist img {
+    max-width: 100%;
+    height: auto;
+  }
+  .prose-naturalist table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .prose-naturalist th,
+  .prose-naturalist td {
+    border: 1px solid rgb(var(--rule));
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+  }
+  .prose-naturalist th {
+    background: rgb(var(--bg-alt));
+    font-weight: 500;
+  }
+
+  /* Naturalist link — underline animation */
+  .link-naturalist {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 0% 1px;
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    transition: background-size 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .link-naturalist:hover {
+    background-size: 100% 1px;
+  }
+}

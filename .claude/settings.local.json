@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/max/.local/bin/**)",
+      "Bash(npm list *)",
+      "WebFetch(domain:taxidermiedelestrie.com)",
+      "Bash(yarn add *)",
+      "Bash(npm view *)",
+      "Bash(yarn tsc *)"
+    ]
+  }
+}
