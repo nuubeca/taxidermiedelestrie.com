@@ -188,7 +188,7 @@ model Variant {
 
 model MediaAsset {
   id            Int       @id @default(autoincrement())
-  wpPostId      Int       @unique
+  wpPostId      Int?      @unique // null = téléversé hors WordPress
   originalUrl   String // URL absolue sur WordPress live
   filePath      String // ex: "2019/09/fullsizeoutput_94e.jpeg"
   localPath     String? // rempli par 03-download-media.ts

@@ -19,3 +19,6 @@ public/uploads/
 # Tooling
 .firecrawl/
 tsconfig.tsbuildinfo
+
+# images générées (media-gen) avant upload Storage
+scripts/.generated/

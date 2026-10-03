@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -34,8 +35,13 @@ function Tree({ nodes, depth = 0 }: { nodes: CategoryNode[]; depth?: number }) {
         <li key={n.id} className="py-2">
           <div className="flex items-center gap-3">
             {n.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={n.imageUrl} alt="" className="w-8 h-8 rounded object-cover border border-gray-800" />
+              <Image
+                src={n.imageUrl}
+                alt=""
+                width={32}
+                height={32}
+                className="w-8 h-8 rounded object-cover border border-gray-800"
+              />
             ) : (
               <div className="w-8 h-8 rounded bg-gray-900 border border-gray-800" />
             )}

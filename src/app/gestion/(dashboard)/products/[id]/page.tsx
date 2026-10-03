@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -32,8 +33,13 @@ export default async function ProductDetail({ params }: { params: Promise<{ id: 
         <div className="md:col-span-2 space-y-6">
           {product.primaryImageUrl && (
             <div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={product.primaryImageUrl} alt={product.name} className="rounded border border-gray-800 max-h-72" />
+              <Image
+                src={product.primaryImageUrl}
+                alt={product.name}
+                width={288}
+                height={288}
+                className="rounded border border-gray-800 max-h-72 w-auto object-contain"
+              />
             </div>
           )}
 
@@ -106,8 +112,9 @@ export default async function ProductDetail({ params }: { params: Promise<{ id: 
             <Section title={`Galerie (${product.galleryImageUrls.length})`}>
               <div className="grid grid-cols-4 gap-2">
                 {product.galleryImageUrls.map((url) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={url} src={url} alt="" className="rounded border border-gray-800 aspect-square object-cover" />
+                  <div key={url} className="relative aspect-square">
+                    <Image src={url} alt="" fill sizes="200px" className="rounded border border-gray-800 object-cover" />
+                  </div>
                 ))}
               </div>
             </Section>

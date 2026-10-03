@@ -18,6 +18,7 @@
     "migrate:accounts": "tsx scripts/04-seed-users-orders.ts",
     "migrate:media-storage": "tsx scripts/04-upload-media-storage.ts",
     "migrate:videos": "tsx scripts/05-upload-videos.ts",
+    "migrate:category-images": "tsx scripts/06-upload-category-images.ts",
     "migrate:all": "npm run migrate:transform && npm run migrate:seed"
   },
   "dependencies": {
