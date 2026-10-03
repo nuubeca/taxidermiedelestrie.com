@@ -1,7 +1,12 @@
-import Link from "next/link";
 import type { Prisma, OrderStatus } from "@prisma/client";
+import { Plus, ShoppingBag } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ORDER_STATUS_LABEL, FULFILLMENT_LABEL } from "@/lib/orders/format";
+import { money, shortDate } from "@/lib/gestion/format";
+import { OrderStatusBadge } from "@/components/gestion/badges";
+import {
+  ButtonLink, EmptyState, FilterTabs, PageHeader, Pagination, RowLink, SearchBar, Table, Td, Th, rowClass,
+} from "@/components/gestion/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +19,11 @@ export default async function OrdersList({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const q = sp.q?.trim() ?? "";
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
-  const status = STATUSES.find((s) => s === sp.status);
+  const status = sp.status === "open" ? "open" : STATUSES.find((s) => s === sp.status);
 
   const where: Prisma.OrderWhereInput = {};
-  if (status) where.status = status;
+  if (status === "open") where.status = { in: ["RECEIVED", "PROCESSING"] };
+  else if (status) where.status = status;
   if (q) {
     where.OR = [
       { number: { contains: q, mode: "insensitive" } },
@@ -28,54 +34,88 @@ export default async function OrdersList({ searchParams }: { searchParams: Promi
     ];
   }
 
-  const [total, orders] = await Promise.all([
+  const [total, orders, counts] = await Promise.all([
     prisma.order.count({ where }),
-    prisma.order.findMany({ where, orderBy: { placedAt: "desc" }, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE, include: { _count: { select: { items: true } } } }),
+    prisma.order.findMany({
+      where,
+      orderBy: { placedAt: "desc" },
+      take: PAGE_SIZE,
+      skip: (page - 1) * PAGE_SIZE,
+      include: { _count: { select: { items: true } } },
+    }),
+    prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
   ]);
+  const countOf = (s: OrderStatus) => counts.find((c) => c.status === s)?._count._all ?? 0;
+  const all = counts.reduce((n, c) => n + c._count._all, 0);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const href = (params: Record<string, string | undefined>) => {
+    const qs = new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => Boolean(e[1])));
+    const s = qs.toString();
+    return `/gestion/commandes${s ? `?${s}` : ""}`;
+  };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Commandes <span className="text-neutral-500 text-base">({total})</span></h1>
-      </div>
+      <PageHeader
+        title="Commandes"
+        description="Les commandes du site arrivent ici. Le commis prépare, communique avec le client, puis complète."
+        actions={<ButtonLink href="/gestion/commandes/nouvelle" icon={Plus}>Nouvelle commande</ButtonLink>}
+      />
 
-      <form className="flex flex-wrap gap-3 mb-6">
-        <input name="q" defaultValue={q} placeholder="Numéro, nom, courriel, téléphone" className="bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm w-80" />
-        <select name="status" defaultValue={status ?? ""} className="bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm">
-          <option value="">Tous les statuts</option>
-          {STATUSES.map((s) => <option key={s} value={s}>{ORDER_STATUS_LABEL[s]}</option>)}
-        </select>
-        <button type="submit" className="bg-neutral-200 text-neutral-900 rounded px-4 py-2 text-sm">Filtrer</button>
-      </form>
+      <FilterTabs
+        items={[
+          { href: href({ q }), label: "Toutes", count: all, current: !status },
+          { href: href({ q, status: "open" }), label: "À traiter", count: countOf("RECEIVED") + countOf("PROCESSING"), current: status === "open" },
+          ...STATUSES.map((s) => ({ href: href({ q, status: s }), label: ORDER_STATUS_LABEL[s], count: countOf(s), current: status === s })),
+        ]}
+      />
 
-      <table className="w-full text-sm">
-        <thead className="text-left text-neutral-500 border-b border-neutral-800">
-          <tr><th className="py-2">Numéro</th><th>Date</th><th>Client</th><th>Réception</th><th>Articles</th><th>Statut</th><th className="text-right">Sous-total</th></tr>
-        </thead>
-        <tbody>
-          {orders.map((o) => (
-            <tr key={o.id} className="border-b border-neutral-900 hover:bg-neutral-900">
-              <td className="py-2"><Link href={`/gestion/commandes/${o.id}`} className="font-mono text-neutral-100 hover:underline">{o.number}</Link></td>
-              <td>{o.placedAt.toLocaleDateString("fr-CA")}</td>
-              <td>{[o.firstName, o.lastName].filter(Boolean).join(" ") || "—"}<span className="block text-xs text-neutral-500">{o.email}</span></td>
-              <td>{FULFILLMENT_LABEL[o.fulfillment]}</td>
-              <td>{o._count.items}</td>
-              <td>{ORDER_STATUS_LABEL[o.status]}</td>
-              <td className="text-right font-mono">{o.subtotal.toNumber().toFixed(2)} $</td>
+      <SearchBar action="/gestion/commandes" placeholder="Numéro, nom, courriel ou téléphone" defaultValue={q}>
+        {status ? <input type="hidden" name="status" value={status} /> : null}
+      </SearchBar>
+
+      {orders.length === 0 ? (
+        <EmptyState icon={ShoppingBag} title="Aucune commande" description={q ? "Aucun résultat pour cette recherche." : "Aucune commande dans cette vue."} />
+      ) : (
+        <Table>
+          <thead>
+            <tr>
+              <Th>Commande</Th>
+              <Th>Client</Th>
+              <Th className="hidden md:table-cell">Réception</Th>
+              <Th className="hidden sm:table-cell text-right">Articles</Th>
+              <Th>Statut</Th>
+              <Th className="text-right">Sous-total</Th>
             </tr>
-          ))}
-          {orders.length === 0 ? <tr><td colSpan={7} className="py-8 text-center text-neutral-500">Aucune commande.</td></tr> : null}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {orders.map((o) => {
+              const name = [o.firstName, o.lastName].filter(Boolean).join(" ") || o.email;
+              return (
+                <tr key={o.id} className={rowClass}>
+                  <Td>
+                    <RowLink href={`/gestion/commandes/${o.id}`} label={`Ouvrir la commande ${o.number}`}>
+                      <span className="font-mono text-sm font-medium text-ink">{o.number}</span>
+                    </RowLink>
+                    <span className="block text-xs text-ink-muted">{shortDate(o.placedAt)}</span>
+                  </Td>
+                  <Td>
+                    <span className="block text-ink">{name}</span>
+                    <span className="block max-w-[220px] truncate text-xs text-ink-muted">{o.email}</span>
+                  </Td>
+                  <Td className="hidden text-ink-muted md:table-cell">{FULFILLMENT_LABEL[o.fulfillment]}</Td>
+                  <Td className="hidden text-right font-mono tabular-nums text-ink-muted sm:table-cell">{o._count.items}</Td>
+                  <Td><OrderStatusBadge status={o.status} /></Td>
+                  <Td className="text-right font-mono tabular-nums text-ink">{money(o.subtotal)}</Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Table>
+      )}
 
-      {pages > 1 ? (
-        <div className="flex gap-2 mt-6 text-sm">
-          {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
-            <Link key={p} href={{ pathname: "/gestion/commandes", query: { ...(q ? { q } : {}), ...(status ? { status } : {}), page: p } }} className={p === page ? "px-3 py-1 bg-neutral-200 text-neutral-900 rounded" : "px-3 py-1 bg-neutral-900 rounded"}>{p}</Link>
-          ))}
-        </div>
-      ) : null}
+      <Pagination page={page} pages={pages} hrefFor={(p) => href({ q, status, page: String(p) })} />
     </div>
   );
 }

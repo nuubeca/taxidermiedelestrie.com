@@ -32,7 +32,7 @@ enum ProductStatus {
 
 model Category {
   id           Int        @id @default(autoincrement())
-  wpTermId     Int        @unique
+  wpTermId     Int?       @unique // null = créée dans la gestion
   slug         String     @unique
   name         String
   description  String?
@@ -51,7 +51,7 @@ model Category {
 
 model Tag {
   id           Int       @id @default(autoincrement())
-  wpTermId     Int       @unique
+  wpTermId     Int?      @unique // null = créé dans la gestion
   slug         String    @unique
   name         String
   productCount Int       @default(0)
@@ -64,7 +64,7 @@ model Tag {
 
 model Product {
   id                Int           @id @default(autoincrement())
-  wpPostId          Int           @unique
+  wpPostId          Int?          @unique // null = créé dans la gestion
   slug              String        @unique
   name              String
   description       String?
@@ -151,7 +151,7 @@ model ProductAttribute {
 
 model Variant {
   id        Int     @id @default(autoincrement())
-  wpPostId  Int     @unique
+  wpPostId  Int?    @unique // null = créée dans la gestion
   productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 

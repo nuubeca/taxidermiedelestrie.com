@@ -1,181 +1,115 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Copy, ExternalLink, RotateCcw } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { categoryOptions, tagOptions } from "@/lib/gestion/catalog";
+import { shortDate } from "@/lib/gestion/format";
+import { ProductStatusBadge } from "@/components/gestion/badges";
+import { ActionButton, ConfirmButton } from "@/components/gestion/forms";
+import { PageHeader, buttonClass } from "@/components/gestion/ui";
+import { deleteProduct, duplicateProduct, restoreProduct, trashProduct, updateProduct } from "../actions";
+import { ProductForm } from "../ProductForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const productId = parseInt(id, 10);
-  if (!Number.isFinite(productId)) notFound();
+const dec = (v: { toString: () => string } | null) => (v === null ? "" : v.toString());
 
-  const product = await prisma.product.findUnique({
-    where: { id: productId },
-    include: {
-      categories: true,
-      tags: true,
-      attributes: { orderBy: { position: "asc" } },
-      variants: { orderBy: { position: "asc" } },
-    },
-  });
+export default async function EditProductPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cree?: string }> }) {
+  const { id } = await params;
+  const { cree } = await searchParams;
+  const productId = Number(id);
+  if (!Number.isInteger(productId)) notFound();
+
+  const [product, categories, tags] = await Promise.all([
+    prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        categories: { select: { id: true, slug: true } },
+        tags: { select: { id: true } },
+        attributes: { orderBy: { position: "asc" } },
+        variants: { orderBy: { position: "asc" } },
+      },
+    }),
+    categoryOptions(),
+    tagOptions(),
+  ]);
   if (!product) notFound();
 
+  const keyOf = new Map(product.attributes.map((a) => [a.slug, `a${a.id}`]));
+  const publicHref = product.categories[0] ? `/catalogue/${product.categories[0].slug}/${product.slug}` : null;
+  const trashed = product.status === "TRASH";
+
   return (
-    <div className="max-w-5xl">
-      <Link href="/gestion/products" className="text-sm text-gray-400 hover:underline">← Retour</Link>
-      <h1 className="text-2xl font-semibold mt-2 mb-1">{product.name}</h1>
-      <p className="text-xs text-gray-500 mb-6">
-        WP ID {product.wpPostId} · slug <code>{product.slug}</code> · {product.type} · {product.status}
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
-          {product.primaryImageUrl && (
-            <div>
-              <Image
-                src={product.primaryImageUrl}
-                alt={product.name}
-                width={288}
-                height={288}
-                className="rounded border border-gray-800 max-h-72 w-auto object-contain"
-              />
-            </div>
-          )}
-
-          <Section title="Description">
-            {product.description ? (
-              <div className="prose prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: product.description }} />
+    <div>
+      <PageHeader
+        back={{ href: "/gestion/products", label: "Produits" }}
+        title={<span className="flex flex-wrap items-center gap-3"><span className="truncate">{product.name}</span><ProductStatusBadge status={product.status} /></span>}
+        description={`${cree ? "Produit créé. " : ""}Modifié le ${shortDate(product.updatedAt)} · ${product.totalSales} vente${product.totalSales > 1 ? "s" : ""}${product.wpPostId ? ` · WordPress #${product.wpPostId}` : ""}`}
+        actions={
+          <>
+            {publicHref && product.status === "PUBLISHED" ? (
+              <Link href={publicHref} target="_blank" className={buttonClass.secondary}>
+                <ExternalLink className="h-4 w-4" aria-hidden /> Voir sur le site
+              </Link>
+            ) : null}
+            <ActionButton action={duplicateProduct.bind(null, product.id)} icon={<Copy className="h-4 w-4" aria-hidden />}>Dupliquer</ActionButton>
+            {trashed ? (
+              <>
+                <ActionButton action={restoreProduct.bind(null, product.id)} icon={<RotateCcw className="h-4 w-4" aria-hidden />}>Restaurer</ActionButton>
+                <ConfirmButton onConfirm={deleteProduct.bind(null, product.id)} label="Supprimer" confirmLabel="Supprimer définitivement" />
+              </>
             ) : (
-              <p className="text-sm text-gray-500">—</p>
+              <ConfirmButton onConfirm={trashProduct.bind(null, product.id)} label="Corbeille" confirmLabel="Mettre à la corbeille" />
             )}
-          </Section>
-
-          <Section title={`Attributs (${product.attributes.length})`}>
-            {product.attributes.length === 0 ? <p className="text-sm text-gray-500">Aucun</p> : (
-              <ul className="space-y-2 text-sm">
-                {product.attributes.map((a) => (
-                  <li key={a.id} className="rounded border border-gray-800 p-3">
-                    <div className="font-medium">{a.name} <span className="text-gray-500 text-xs">({a.slug})</span></div>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {a.options.map((o) => (
-                        <span key={o} className="rounded bg-gray-800 px-2 py-0.5 text-xs">{o}</span>
-                      ))}
-                    </div>
-                    <div className="mt-1 text-xs text-gray-500">
-                      {a.isVisible ? "visible" : "masqué"} · {a.isVariation ? "pilote variations" : "info"}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
-
-          <Section title={`Variations (${product.variants.length})`}>
-            {product.variants.length === 0 ? <p className="text-sm text-gray-500">Aucune</p> : (
-              <div className="overflow-x-auto rounded border border-gray-800">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-900 text-gray-400">
-                    <tr>
-                      <th className="text-left px-3 py-2">SKU</th>
-                      <th className="text-left px-3 py-2">Attributs</th>
-                      <th className="text-right px-3 py-2">Prix</th>
-                      <th className="text-right px-3 py-2">Stock</th>
-                      <th className="text-left px-3 py-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {product.variants.map((v) => (
-                      <tr key={v.id} className="border-t border-gray-800">
-                        <td className="px-3 py-2 text-gray-400">{v.sku || "—"}</td>
-                        <td className="px-3 py-2 text-xs">
-                          {Object.entries(v.attributes as Record<string, string>).map(([k, val]) => (
-                            <span key={k} className="mr-2">
-                              <span className="text-gray-500">{k}:</span> {val}
-                            </span>
-                          ))}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums">{v.price ? `${v.price.toString()} $` : "—"}</td>
-                        <td className="px-3 py-2 text-right">
-                          {v.manageStock ? (v.stockQuantity ?? 0) : <span className="text-gray-500">{v.stockStatus}</span>}
-                        </td>
-                        <td className="px-3 py-2 text-xs">{v.enabled ? "actif" : "désactivé"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Section>
-
-          {product.galleryImageUrls.length > 0 && (
-            <Section title={`Galerie (${product.galleryImageUrls.length})`}>
-              <div className="grid grid-cols-4 gap-2">
-                {product.galleryImageUrls.map((url) => (
-                  <div key={url} className="relative aspect-square">
-                    <Image src={url} alt="" fill sizes="200px" className="rounded border border-gray-800 object-cover" />
-                  </div>
-                ))}
-              </div>
-            </Section>
-          )}
-        </div>
-
-        <aside className="space-y-6">
-          <Section title="Prix & stock">
-            <dl className="text-sm space-y-1">
-              <Row label="Prix" value={product.price ? `${product.price.toString()} $` : "—"} />
-              <Row label="Prix régulier" value={product.regularPrice ? `${product.regularPrice.toString()} $` : "—"} />
-              <Row label="Prix soldé" value={product.salePrice ? `${product.salePrice.toString()} $` : "—"} />
-              <Row label="SKU" value={product.sku ?? "—"} />
-              <Row label="Stock géré" value={product.manageStock ? "oui" : "non"} />
-              <Row label="Quantité" value={product.stockQuantity?.toString() ?? "—"} />
-              <Row label="Statut stock" value={product.stockStatus} />
-            </dl>
-          </Section>
-
-          <Section title="Catégories">
-            {product.categories.length === 0 ? <p className="text-sm text-gray-500">—</p> : (
-              <ul className="text-sm space-y-1">
-                {product.categories.map((c) => <li key={c.id}>{c.name}</li>)}
-              </ul>
-            )}
-          </Section>
-
-          <Section title="Tags">
-            {product.tags.length === 0 ? <p className="text-sm text-gray-500">—</p> : (
-              <div className="flex flex-wrap gap-1">
-                {product.tags.map((t) => <span key={t.id} className="rounded bg-gray-800 px-2 py-0.5 text-xs">{t.name}</span>)}
-              </div>
-            )}
-          </Section>
-
-          <Section title="Dimensions">
-            <dl className="text-sm space-y-1">
-              <Row label="Poids" value={product.weight ? `${product.weight.toString()} kg` : "—"} />
-              <Row label="L × l × H" value={product.length || product.width || product.height ? `${product.length ?? "?"} × ${product.width ?? "?"} × ${product.height ?? "?"} cm` : "—"} />
-            </dl>
-          </Section>
-        </aside>
-      </div>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h2 className="text-lg font-medium mb-3">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-gray-500">{label}</dt>
-      <dd className="text-right">{value}</dd>
+          </>
+        }
+      />
+      <ProductForm
+        version={product.updatedAt.toISOString()}
+        action={updateProduct}
+        submitLabel="Enregistrer"
+        categories={categories}
+        tags={tags}
+        initial={{
+          id: product.id,
+          name: product.name,
+          slug: product.slug,
+          shortDescription: product.shortDescription ?? "",
+          description: product.description ?? "",
+          status: product.status === "TRASH" ? "DRAFT" : product.status,
+          featured: product.featured,
+          sku: product.sku ?? "",
+          regularPrice: dec(product.regularPrice ?? (product.variants.length ? null : product.price)),
+          salePrice: dec(product.salePrice),
+          manageStock: product.manageStock,
+          stockQuantity: product.stockQuantity?.toString() ?? "",
+          stockStatus: product.stockStatus,
+          weight: dec(product.weight),
+          metaTitle: product.metaTitle ?? "",
+          metaDescription: product.metaDescription ?? "",
+          primaryImageUrl: product.primaryImageUrl,
+          galleryImageUrls: product.galleryImageUrls,
+          categoryIds: product.categories.map((c) => c.id),
+          tagIds: product.tags.map((t) => t.id),
+          attributes: product.attributes.map((a) => ({ key: `a${a.id}`, id: a.id, name: a.name, options: a.options, isVariation: a.isVariation, isVisible: a.isVisible })),
+          variants: product.variants.map((v) => {
+            const raw = v.attributes && typeof v.attributes === "object" && !Array.isArray(v.attributes) ? (v.attributes as Record<string, string>) : {};
+            return {
+              key: `v${v.id}`,
+              id: v.id,
+              attributes: Object.fromEntries(Object.entries(raw).map(([slug, val]) => [keyOf.get(slug) ?? slug, val])),
+              sku: v.sku ?? "",
+              regularPrice: dec(v.regularPrice ?? v.price),
+              salePrice: dec(v.salePrice),
+              manageStock: v.manageStock,
+              stockQuantity: v.stockQuantity?.toString() ?? "",
+              stockStatus: v.stockStatus,
+              enabled: v.enabled,
+              imageUrl: v.imageUrl,
+            };
+          }),
+        }}
+      />
     </div>
   );
 }
