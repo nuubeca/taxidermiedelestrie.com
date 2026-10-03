@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Caption } from "@/components/ui/Caption";
 import { cn, formatPrice } from "@/lib/utils";
+import { AddToCartButton } from "@/components/cart/AddToCartButton";
 
 type Variant = {
   id: number;
@@ -21,6 +22,7 @@ type Attribute = {
 };
 
 type Props = {
+  product: { id: number; slug: string; categorySlug: string; name: string; sku: string | null; imageUrl: string | null };
   attributes: Attribute[];
   variants: Variant[];
   basePrice: number | null;
@@ -28,6 +30,7 @@ type Props = {
 };
 
 export function VariantSelector({
+  product,
   attributes,
   variants,
   basePrice,
@@ -122,18 +125,20 @@ export function VariantSelector({
 
       {/* CTA */}
       <div className="flex flex-col gap-3">
-        <button
-          type="button"
+        <AddToCartButton
           disabled={!inStock}
-          className={cn(
-            "h-14 w-full font-mono text-xs uppercase tracking-museum transition-colors",
-            inStock
-              ? "bg-ink text-bg hover:bg-ink-muted"
-              : "bg-bg-alt text-ink-subtle cursor-not-allowed",
-          )}
-        >
-          {inStock ? "Demander un devis" : "Indisponible"}
-        </button>
+          line={{
+            productId: product.id,
+            variantId: matched?.id ?? null,
+            slug: product.slug,
+            categorySlug: product.categorySlug,
+            name: product.name,
+            sku: displaySku ?? product.sku,
+            imageUrl: product.imageUrl,
+            attributes: matched ? selection : {},
+            unitPrice: displayPrice,
+          }}
+        />
         <p className="text-xs text-ink-subtle text-center">
           Disponible en magasin ou par livraison · Paiement à la commande
         </p>

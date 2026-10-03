@@ -15,17 +15,24 @@
     "migrate:transform": "tsx scripts/01-transform.ts",
     "migrate:seed": "tsx scripts/02-seed.ts",
     "migrate:media": "tsx scripts/03-download-media.ts",
+    "migrate:accounts": "tsx scripts/04-seed-users-orders.ts",
+    "migrate:media-storage": "tsx scripts/04-upload-media-storage.ts",
+    "migrate:videos": "tsx scripts/05-upload-videos.ts",
     "migrate:all": "npm run migrate:transform && npm run migrate:seed"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.117.2",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.11.0",
     "next": "^16.2.4",
     "next-themes": "^0.4.6",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "resend": "6.30.0",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

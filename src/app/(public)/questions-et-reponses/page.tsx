@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
@@ -63,9 +64,9 @@ export default function FAQPage() {
               <p className="mt-8 max-w-2xl text-lead text-ink-muted text-balance">
                 Quelques repères pratiques pour les chasseurs : enregistrement, préparation du
                 gibier, conseils avant naturalisation. Une autre question ?{" "}
-                <a href="/contact" className="link-naturalist text-ink">
+                <Link href="/contact" className="link-naturalist text-ink">
                   Joignez-nous
-                </a>
+                </Link>
                 .
               </p>
             </div>

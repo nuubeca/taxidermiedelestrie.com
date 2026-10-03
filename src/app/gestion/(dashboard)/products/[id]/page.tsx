@@ -22,7 +22,7 @@ export default async function ProductDetail({ params }: { params: Promise<{ id: 
 
   return (
     <div className="max-w-5xl">
-      <Link href="/admin/products" className="text-sm text-gray-400 hover:underline">← Retour</Link>
+      <Link href="/gestion/products" className="text-sm text-gray-400 hover:underline">← Retour</Link>
       <h1 className="text-2xl font-semibold mt-2 mb-1">{product.name}</h1>
       <p className="text-xs text-gray-500 mb-6">
         WP ID {product.wpPostId} · slug <code>{product.slug}</code> · {product.type} · {product.status}

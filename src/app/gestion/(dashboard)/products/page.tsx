@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Prisma, ProductStatus, ProductType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function ProductsList({ searchParams }: { searchParams: Pro
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
   const skip = (page - 1) * PAGE_SIZE;
 
-  const where: any = {};
+  const where: Prisma.ProductWhereInput = {};
   if (q) {
     where.OR = [
       { name: { contains: q, mode: "insensitive" } },
@@ -26,8 +27,8 @@ export default async function ProductsList({ searchParams }: { searchParams: Pro
       { slug: { contains: q, mode: "insensitive" } },
     ];
   }
-  if (sp.type) where.type = sp.type;
-  if (sp.status) where.status = sp.status;
+  if (sp.type) where.type = sp.type as ProductType;
+  if (sp.status) where.status = sp.status as ProductStatus;
 
   const [total, products] = await Promise.all([
     prisma.product.count({ where }),
@@ -52,7 +53,7 @@ export default async function ProductsList({ searchParams }: { searchParams: Pro
         <span className="text-sm text-gray-500">{total} résultat{total > 1 ? "s" : ""}</span>
       </div>
 
-      <form className="mb-4 flex gap-2" action="/admin/products" method="get">
+      <form className="mb-4 flex gap-2" action="/gestion/products" method="get">
         <input
           type="text"
           name="q"
@@ -99,7 +100,7 @@ export default async function ProductsList({ searchParams }: { searchParams: Pro
               <tr key={p.id} className="border-t border-gray-800 hover:bg-gray-900/50">
                 <td className="px-4 py-2 text-gray-500">{p.wpPostId}</td>
                 <td className="px-4 py-2">
-                  <Link href={`/admin/products/${p.id}`} className="text-blue-400 hover:underline">
+                  <Link href={`/gestion/products/${p.id}`} className="text-blue-400 hover:underline">
                     {p.name}
                   </Link>
                 </td>
@@ -128,11 +129,11 @@ export default async function ProductsList({ searchParams }: { searchParams: Pro
       {pages > 1 && (
         <div className="mt-4 flex items-center gap-2 text-sm">
           {page > 1 && (
-            <Link href={`/admin/products?${new URLSearchParams({ ...sp, page: String(page - 1) } as any)}`} className="px-3 py-1 rounded border border-gray-800 hover:bg-gray-900">← Précédent</Link>
+            <Link href={{ pathname: "/gestion/products", query: { ...sp, page: String(page - 1) } }} className="px-3 py-1 rounded border border-gray-800 hover:bg-gray-900">← Précédent</Link>
           )}
           <span className="text-gray-500">Page {page} / {pages}</span>
           {page < pages && (
-            <Link href={`/admin/products?${new URLSearchParams({ ...sp, page: String(page + 1) } as any)}`} className="px-3 py-1 rounded border border-gray-800 hover:bg-gray-900">Suivant →</Link>
+            <Link href={{ pathname: "/gestion/products", query: { ...sp, page: String(page + 1) } }} className="px-3 py-1 rounded border border-gray-800 hover:bg-gray-900">Suivant →</Link>
           )}
         </div>
       )}

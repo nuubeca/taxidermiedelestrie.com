@@ -1,9 +1,10 @@
 import Image from "next/image";
+import { mediaUrl } from "@/lib/media";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { SITE } from "@/lib/site";
 
-const LOGO_SRC = "https://taxidermiedelestrie.com/wp-content/uploads/2018/03/logo_taxidermie_coul.png";
+const LOGO_SRC = mediaUrl("2018/03/logo_taxidermie_coul.png");
 
 type Size = "sm" | "md" | "lg";
 

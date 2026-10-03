@@ -48,6 +48,7 @@ export const NAV_FOOTER_DISCOVER = [
 export const NAV_FOOTER_INFO = [
   { href: "/a-propos", label: "À propos" },
   { href: "/questions-et-reponses", label: "Questions & réponses" },
+  { href: "/conseils/conserver-sa-peau-d-ours", label: "Conserver sa peau d'ours" },
   { href: "/contact", label: "Nous joindre" },
 ];
 

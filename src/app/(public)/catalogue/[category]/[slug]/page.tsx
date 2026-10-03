@@ -100,6 +100,14 @@ export default async function ProductPage({ params }: { params: Params }) {
 
               <div className="mt-8">
                 <VariantSelector
+                  product={{
+                    id: product.id,
+                    slug: product.slug,
+                    categorySlug: category,
+                    name: product.name,
+                    sku: product.sku,
+                    imageUrl: product.primaryImageUrl,
+                  }}
                   attributes={product.attributes}
                   variants={product.variants}
                   basePrice={product.price}

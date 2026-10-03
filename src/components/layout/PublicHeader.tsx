@@ -4,6 +4,8 @@ import { Logo } from "./Logo";
 import { PrimaryNav } from "./PrimaryNav";
 import { MobileMenu } from "./MobileMenu";
 import { SITE } from "@/lib/site";
+import { CartLink } from "@/components/cart/CartLink";
+import { AccountLink } from "@/components/layout/AccountLink";
 
 export function PublicHeader() {
   return (
@@ -32,6 +34,8 @@ export function PublicHeader() {
         <div className="flex items-center gap-4">
           <PrimaryNav />
           <span className="hidden md:block h-6 w-px bg-rule" aria-hidden="true" />
+          <AccountLink />
+          <CartLink />
           <ThemeToggle />
           <MobileMenu />
         </div>
